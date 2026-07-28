@@ -2,6 +2,8 @@
 ComfyUI node definitions for the custom_schedulers package.
 """
 
+import torch
+
 from .beta_scheduler_v2c import get_beta_schedule_v2c, get_beta_schedule_v3
 from .schedulers.beta_native_dense import get_beta_schedule_native_dense
 from .schedulers.native_art_lite import get_native_art_lite_schedule
@@ -9,6 +11,8 @@ from .schedulers.native_crs_lite import get_native_crs_lite_schedule
 
 
 def _resolve_total_steps(steps, denoise):
+    if denoise <= 0.0:
+        return 0
     total_steps = steps
     if denoise < 1.0:
         total_steps = int(steps / denoise)
@@ -50,6 +54,8 @@ class BetaSchedulerV2C:
 
     def get_sigmas(self, model, steps, alpha, beta, denoise):
         total_steps = _resolve_total_steps(steps, denoise)
+        if total_steps == 0:
+            return (torch.FloatTensor([]),)
         model_sampling = model.get_model_object("model_sampling")
         sigmas = get_beta_schedule_v2c(model_sampling, total_steps, alpha, beta)
         return (_trim_for_denoise(sigmas, steps, denoise),)
@@ -87,6 +93,8 @@ class BetaSchedulerV3:
 
     def get_sigmas(self, model, steps, alpha, beta, base_scheduler, denoise):
         total_steps = _resolve_total_steps(steps, denoise)
+        if total_steps == 0:
+            return (torch.FloatTensor([]),)
         model_sampling = model.get_model_object("model_sampling")
         sigmas = get_beta_schedule_v3(
             model_sampling, total_steps, alpha, beta, base_scheduler
@@ -140,6 +148,8 @@ class BetaSchedulerNativeDense:
         denoise,
     ):
         total_steps = _resolve_total_steps(steps, denoise)
+        if total_steps == 0:
+            return (torch.FloatTensor([]),)
         model_sampling = model.get_model_object("model_sampling")
         sigmas = get_beta_schedule_native_dense(
             model_sampling,
@@ -190,6 +200,8 @@ class NativeCRSLiteScheduler:
         denoise,
     ):
         total_steps = _resolve_total_steps(steps, denoise)
+        if total_steps == 0:
+            return (torch.FloatTensor([]),)
         model_sampling = model.get_model_object("model_sampling")
         sigmas = get_native_crs_lite_schedule(
             model_sampling,
@@ -249,6 +261,8 @@ class NativeARTLiteScheduler:
         denoise,
     ):
         total_steps = _resolve_total_steps(steps, denoise)
+        if total_steps == 0:
+            return (torch.FloatTensor([]),)
         model_sampling = model.get_model_object("model_sampling")
         sigmas = get_native_art_lite_schedule(
             model_sampling,
